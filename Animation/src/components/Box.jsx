@@ -1,42 +1,67 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
-import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
 
-gsap.registerPlugin(useGSAP, ScrollTrigger);
+gsap.registerPlugin(ScrollTrigger);
 
-const Box = () => {
-  const boxRef = useRef();
+function pad(n, width) {
+  return String(n).padStart(width, "0");
+}
 
-  useGSAP(
-    () => {
-        
-      let time = gsap.timeline({
-         scrollTrigger: {
-          trigger: ".box2",
-          start: "top 80%",
-          end: "top 30%",
-          scrub: true,
-          markers: true,
-        },
-        x: 200,
-        duration: 1.5,
+const Box = ({ path, size}) => {
+  const TOTAL_FRAMES = size;
+  const containerRef = useRef(null);
+  const imgRef = useRef(null);
+  const [currentFrame, setCurrentFrame] = useState(1);
+
+  useEffect(() => {
+    const imagePath = `/${path}/Images_${pad(currentFrame, 4)}.jpg`;
+    if (imgRef.current) {
+      imgRef.current.src = imagePath;
+    }
+  }, [currentFrame, path]);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.to({}, {
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top top",
+          end: `+=${TOTAL_FRAMES * 4}px`,
+          scrub: 1,
+          onUpdate: (self) => {
+            const frame = Math.min(TOTAL_FRAMES, Math.floor(self.progress * TOTAL_FRAMES));
+            setCurrentFrame(frame);
+          }
+        }
       });
-      
-    
-      time.add(time.fromTo(".box2", { left:300}, { left:300, top:300,repeat:-1, yoyo:true}));
-     
-    },
-    { dependencies: [] }
-  );
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, [TOTAL_FRAMES]);
 
   return (
     <>
-      <div className="h-[100vh] w-screen relative p-5">
-        <div className="h-[100px] w-[100px] bg-green-500 shadow-2xl rounded-2xl box1 relative"></div>
-      </div>
-      <div className="h-[100vh] w-screen relative p-5">
-        <div className="h-[100px] w-[100px] bg-red-500 shadow-2xl rounded-2xl box2 relative"></div>
+      <div ref={containerRef} style={{ height: `${TOTAL_FRAMES * 4}px` }}>
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            width: "100%",
+            height: "100vh",
+            overflow: "hidden",
+            backgroundColor: "#000",
+          }}
+        >
+          <img
+            ref={imgRef}
+            src={`/${path}/Images_${pad(currentFrame, 4)}.jpg`}
+            alt="scroll animation"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        </div>
+
       </div>
     </>
   );
